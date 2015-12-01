@@ -22,11 +22,8 @@ void GeneticAlgorithm::fitnesFunction(gene* gene)
 {
     gene->fitness = 0;
     double sum = 0;
-    for(int i = 0; i < gene->length; i++){
-        double _sqrt = qSqrt(abs(gene->alleles[i]));
-        double _sin = qSin(_sqrt);
-        sum += (-gene->alleles[i]*_sin);
-    }
+    for(int i = 0; i < gene->length; i++)
+        sum += (-gene->alleles[i]*qSin(qSqrt(fabs(gene->alleles[i]))));
     gene->fitness = sum;
 }
 
@@ -41,7 +38,7 @@ void GeneticAlgorithm::crossOver(gene* parent1, gene* parent2)
         g[i].alleles = new double[GA_N];
         g[i].length = GA_N;
     }
-    double p = GA_P_CROSS;
+    double p = fRand(0, 1);
     switch(m_crossingType) {
     case MINMAX_CROSSOVER:
         for(int i = 0; i < GA_N; i++) {
@@ -61,9 +58,9 @@ void GeneticAlgorithm::crossOver(gene* parent1, gene* parent2)
             fitnesFunction(&g[i]);
         }
         qSort(g);
-        m_newGens << g[3] << g[2];
-        delete g[0].alleles;
-        delete g[1].alleles;
+        m_newGens << g[0] << g[1];
+        delete g[2].alleles;
+        delete g[3].alleles;
         break;
     }
 }
@@ -202,11 +199,20 @@ void GeneticAlgorithm::run()
 //            }
 //            emit update();
         }
+
+        QVector<gene> tmp = m_genotype;
+        tmp.removeAll(tmp.first());
+        if (tmp.isEmpty()) {
+            qDebug() << "EARLY END";
+            qDebug() << "Total iterations: " << i;
+            break;
+        }
     }
-    double x = m_genotype.first().alleles[0];
-    double y = m_genotype.first().alleles[1];
-    double z = m_genotype.first().fitness;
-    qDebug() << "Result:" << "x=" << x << "y=" << y << "z=" << z << endl;
+    qDebug() << "Result:";
+    for( int i = 0; i <  GA_N; i++)
+        qDebug() << QString("coord[%1] = ").arg(i) << m_genotype.first().alleles[i];
+
+    qDebug() << "f = " << m_genotype.first().fitness;
 
 }
 

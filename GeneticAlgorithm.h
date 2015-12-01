@@ -10,10 +10,10 @@
 #include <float.h>
 #include <qmath.h>
 
-#define GA_POWER        1000
+#define GA_POWER        50
 #define GA_P_CROSS      0.55
 #define GA_P_MUTATE     0.001
-#define GA_GENERATION_COUNT     5000
+#define GA_GENERATION_COUNT     100
 
 #define GA_N 2
 enum SelectionType {
@@ -31,6 +31,19 @@ struct gene {
     double fitness;
 
     bool operator<(gene const & b) const {return ((this->fitness) < (b.fitness));}
+    bool operator==(gene const & gn) const  {
+        if(this->fitness != gn.fitness)
+            return false;
+
+        if(this->length != gn.length)
+            return false;
+
+        for(int i = 0; i < this->length; i++) {
+            if(this->alleles[i] != gn.alleles[i])
+                return false;
+        }
+        return true;
+    }
 };
 
 class  GeneticAlgorithm : public QThread
