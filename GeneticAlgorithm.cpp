@@ -11,11 +11,16 @@ double fRand(double fMin, double fMax)
     return fMin + f * (fMax - fMin);
 }
 
+double func(double x, double y){
+    return (-x*qSin(qSqrt(fabs(x)))) + (-y*qSin(qSqrt(fabs(y))));
+}
+
 GeneticAlgorithm::GeneticAlgorithm()
     : m_crossingType(MINMAX_CROSSOVER)
     , m_selectionType(TOURNEY)
+    , m_count(0)
 {
-    m_data.resize(GA_POWER * 3+1);
+    m_data.resize(GA_POWER * 3 * 4);
 }
 
 void GeneticAlgorithm::fitnesFunction(gene* gene)
@@ -184,20 +189,72 @@ void GeneticAlgorithm::run()
     qDebug() << "P_CROSS:" << GA_P_CROSS;
     qDebug() << "P_MUTATE:" << GA_P_MUTATE;
     initGenerator();
+    if(GA_N == 2) {
+        m_count = 0;
+        foreach(gene g, m_genotype) {
+            double x = g.alleles[0];
+            double y = g.alleles[1];
+            double z = g.fitness;
 
+            double x1 = x-2;
+            double y1 = y-2;
+            double z1 = func(x1,y1)+1;
+
+            double x2 = x-2;
+            double y2 = y+2;
+            double z2 = func(x2,y2)+1;
+
+            double x3 = x+2;
+            double y3 = y+2;
+            double z3 = func(x3,y3)+1;
+
+            double x4 = x+2;
+            double y4 = y-2;
+            double z4 = func(x4,y4)+1;
+            add(QVector3D(x1/1500,y1/1500,z1/5000));
+            add(QVector3D(x2/1500,y2/1500,z2/5000));
+            add(QVector3D(x3/1500,y3/1500,z3/5000));
+            add(QVector3D(x4/1500,y4/1500,z4/5000));
+        }
+        m_history.append(m_data);
+        emit update();
+
+        sleep(10);
+    }
     for (int i = 0; i < GA_GENERATION_COUNT; i++) {
         selection();
         mutationOperator();
         reductionOperator();
+
         if(GA_N == 2) {
-//            m_data.clear();
-//            foreach(gene g, m_genotype) {
-//                double x = g.alleles[0];
-//                double y = g.alleles[1];
-//                double z = g.fitness;
-//                add(QVector3D(x/1500,y/1500,z/500));
-//            }
-//            emit update();
+            m_count = 0;
+            foreach(gene g, m_genotype) {
+                double x = g.alleles[0];
+                double y = g.alleles[1];
+
+                double x1 = x-2;
+                double y1 = y-2;
+                double z1 = func(x1,y1)+1;
+
+                double x2 = x-2;
+                double y2 = y+2;
+                double z2 = func(x2,y2)+1;
+
+                double x3 = x+2;
+                double y3 = y+2;
+                double z3 = func(x3,y3)+1;
+
+                double x4 = x+2;
+                double y4 = y-2;
+                double z4 = func(x4,y4)+1;
+                add(QVector3D(x1/1500,y1/1500,z1/5000));
+                add(QVector3D(x2/1500,y2/1500,z2/5000));
+                add(QVector3D(x3/1500,y3/1500,z3/5000));
+                add(QVector3D(x4/1500,y4/1500,z4/5000));
+            }
+            m_history.append(m_data);
+            emit update();
+            sleep(2);
         }
 
         QVector<gene> tmp = m_genotype;

@@ -46,8 +46,8 @@ Plot::Plot()
 {
     m_data.resize(1000*1000*3);
 
-    for (GLfloat x = -500; x < 500; ++x) {
-        for (GLfloat y = -500; y < 500; ++y) {
+    for (GLfloat x = -500; x < 500; x+=3) {
+        for (GLfloat y = -500; y < 500; y+=3) {
 
             GLfloat z = (-x*sin(sqrt(abs(x))))+(-y*sin(sqrt(abs(y))));
             add(QVector3D(x / 1500,y / 1500, z / 5000));

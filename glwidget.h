@@ -46,6 +46,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QMatrix4x4>
+#include <QSlider>
 #include "plot.h"
 #include "GeneticAlgorithm.h"
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
@@ -95,6 +96,7 @@ private:
     QOpenGLBuffer m_plotVbo;
     QOpenGLBuffer m_gaVbo;
     QOpenGLShaderProgram *m_program;
+    QOpenGLShaderProgram *m_program2;
     int m_projMatrixLoc;
     int m_mvMatrixLoc;
     int m_normalMatrixLoc;

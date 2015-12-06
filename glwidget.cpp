@@ -42,6 +42,7 @@
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
 #include <QCoreApplication>
+#include <QVBoxLayout>
 #include <math.h>
 
 GLWidget::GLWidget(QWidget *parent)
@@ -52,6 +53,7 @@ GLWidget::GLWidget(QWidget *parent)
       m_program(0)
 {
     connect(&m_ga, SIGNAL(update()), this, SLOT(update()));
+
     m_ga.start();
     m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -59,6 +61,8 @@ GLWidget::GLWidget(QWidget *parent)
     m_transparent = QCoreApplication::arguments().contains(QStringLiteral("--transparent"));
     if (m_transparent)
         setAttribute(Qt::WA_TranslucentBackground);
+
+
 }
 
 GLWidget::~GLWidget()
@@ -174,6 +178,18 @@ static const char *fragmentShaderSource =
     "   highp vec3 L = normalize(lightPos - vert);\n"
     "   highp float NL = max(dot(normalize(vertNormal), L), 0.0);\n"
     "   highp vec3 color = vec3(0, 0.05+(0.95/0.0842)*vert[2], 0.5+(-0.5/0.0842)*vert[2] );\n"
+    "   highp vec3 col = clamp(color * 0.5 + color * 0.5 * NL, 0.0, 0.5);\n"
+    "   gl_FragColor = vec4(col, 1.0);\n"
+    "}\n";
+
+static const char *fragmentShaderSourceRed =
+    "varying highp vec3 vert;\n"
+    "varying highp vec3 vertNormal;\n"
+    "uniform highp vec3 lightPos;\n"
+    "void main() {\n"
+    "   highp vec3 L = normalize(lightPos - vert);\n"
+    "   highp float NL = max(dot(normalize(vertNormal), L), 0.0);\n"
+    "   highp vec3 color = vec3(1, 0, 0);\n"
     "   highp vec3 col = clamp(color * 0.5 + color * 0.5 * NL, 0.0, 1.0);\n"
     "   gl_FragColor = vec4(col, 1.0);\n"
     "}\n";
@@ -210,31 +226,54 @@ void GLWidget::initializeGL()
     // at all. Nonetheless the below code works in all cases and makes
     // sure there is a VAO when one is needed.
     m_vao.create();
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+    m_vao.bind();
 
     // Setup our vertex buffer object.
     m_plotVbo.create();
     m_plotVbo.bind();
     m_plotVbo.allocate(m_plot.constData(), m_plot.count() * sizeof(GLfloat));
 
-//    m_vaoga.create();
-//    QOpenGLVertexArrayObject::Binder vaogaBinder(&m_vaoga);
-
-//    m_gaVbo.create();
-//    m_gaVbo.bind();
-//    m_gaVbo.allocate(m_ga.constData(), GA_POWER * sizeof(GLfloat));
-
     // Store the vertex attribute bindings for the program.
-    setupVertexAttribs();
 
     // Our camera never changes in this example.
     m_camera.setToIdentity();
     m_camera.translate(0, 0, -1);
 
+    setupVertexAttribs();
     // Light position is fixed.
     m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
 
     m_program->release();
+
+    m_program2 = new QOpenGLShaderProgram;
+    m_program2->addShaderFromSourceCode(QOpenGLShader::Vertex, m_core ? vertexShaderSourceCore : vertexShaderSource);
+    m_program2->addShaderFromSourceCode(QOpenGLShader::Fragment, m_core ? fragmentShaderSourceCore : fragmentShaderSourceRed);
+    m_program2->bindAttributeLocation("vertex", 0);
+    m_program2->bindAttributeLocation("normal", 1);
+    m_program2->link();
+
+    m_program->bind();
+    m_projMatrixLoc = m_program2->uniformLocation("projMatrix");
+    m_mvMatrixLoc = m_program2->uniformLocation("mvMatrix");
+    m_normalMatrixLoc = m_program2->uniformLocation("normalMatrix");
+    m_lightPosLoc = m_program2->uniformLocation("lightPos");
+
+    m_vaoga.create();
+    m_vaoga.bind();
+
+    m_gaVbo.create();
+    m_gaVbo.bind();
+    m_gaVbo.allocate(m_ga.constData(), GA_POWER * sizeof(GLfloat));
+
+    QOpenGLFunctions *f2 = QOpenGLContext::currentContext()->functions();
+    f2->glEnableVertexAttribArray(0);
+    f2->glEnableVertexAttribArray(1);
+    f2->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+    f2->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+
+    m_program2->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
+
+
 }
 
 void GLWidget::setupVertexAttribs()
@@ -246,6 +285,7 @@ void GLWidget::setupVertexAttribs()
     f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
     f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
     m_plotVbo.release();
+
 }
 
 void GLWidget::paintGL()
@@ -259,7 +299,7 @@ void GLWidget::paintGL()
     m_world.rotate(m_yRot / 16.0f, 0, 1, 0);
     m_world.rotate(m_zRot / 16.0f, 0, 0, 1);
 
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+    m_vao.bind();
     m_program->bind();
     m_program->setUniformValue(m_projMatrixLoc, m_proj);
     m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
@@ -267,11 +307,19 @@ void GLWidget::paintGL()
     m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
 
     glDrawArrays(GL_POINTS, 0, m_plot.vertexCount());
-//    QOpenGLVertexArrayObject::Binder vaogaBinder(&m_vaoga);
-//    m_program->bind();
-
-    glDrawArrays(GL_POINTS, 0, m_ga.vertexCount());
     m_program->release();
+    m_vao.release();
+
+    m_vaoga.bind();
+    m_program2->bind();
+    m_program2->setUniformValue(m_projMatrixLoc, m_proj);
+    m_program2->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
+    m_program2->setUniformValue(m_normalMatrixLoc, normalMatrix);
+
+    m_gaVbo.allocate(m_ga.constData(), GA_POWER * sizeof(GLfloat));
+    glDrawArrays(GL_QUADS, 0, m_ga.vertexCount());
+    m_program2->release();
+    m_vaoga.release();
 }
 
 void GLWidget::resizeGL(int w, int h)

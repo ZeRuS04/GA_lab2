@@ -59,6 +59,8 @@ int main(int argc, char *argv[])
     QSurfaceFormat::setDefaultFormat(fmt);
 
     GLWidget mainWindow;
+
+
     mainWindow.resize(mainWindow.sizeHint());
     int desktopArea = QApplication::desktop()->width() *
                      QApplication::desktop()->height();

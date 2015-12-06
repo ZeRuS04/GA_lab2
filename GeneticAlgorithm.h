@@ -10,10 +10,10 @@
 #include <float.h>
 #include <qmath.h>
 
-#define GA_POWER        50
+#define GA_POWER        1000
 #define GA_P_CROSS      0.55
 #define GA_P_MUTATE     0.001
-#define GA_GENERATION_COUNT     100
+#define GA_GENERATION_COUNT     1000
 
 #define GA_N 2
 enum SelectionType {
@@ -68,7 +68,6 @@ public:
     int count() const { return m_count; }
     int vertexCount() const { return m_count / 3; }
 
-
 protected:
     // QThread interface
     void run();
@@ -81,6 +80,7 @@ private:
     QVector<gene> m_newGens;
 
     QVector<GLfloat> m_data;
+    QVector< QVector<GLfloat> > m_history;
     int m_count;
 
     CrossingType m_crossingType;
